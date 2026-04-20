@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sol Executor - Beta</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="main-header">
+        <div class="logo">SOL EXECUTOR - BETA</div>
+        <div class="dev-info">Dev: AreDev | gn375294@gmail.com</div>
+    </header>
+
+    <nav class="tab-menu">
+        <button class="tab-btn active" onclick="switchTab('executor')">EXECUTOR</button>
+        <button class="tab-btn" onclick="switchTab('console')">CONSOLE</button>
+        <button class="tab-btn" onclick="switchTab('soltux')">SOLTUX</button>
+    </nav>
+
+    <main class="main-content">
+        
+        <div id="executor" class="content active">
+            <div id="code-editor" contenteditable="true" spellcheck="false"></div>
+            
+            <footer class="editor-footer">
+                <button class="action-btn red" onclick="runSol()">RUN SCRIPT</button>
+                <button class="action-btn" onclick="document.getElementById('file-input').click()">IMPORT</button>
+                <button class="action-btn" onclick="exportProject()">EXPORT .SOL</button>
+                <button class="action-btn" onclick="clearEditor()">CLEAR ALL</button>
+                <input type="file" id="file-input" style="display:none" onchange="handleFile(this)">
+            </footer>
+        </div>
+
+        <div id="console" class="content">
+            <div id="log-output"></div>
+        </div>
+
+        <div id="soltux" class="content">
+            <div id="soltux-display"></div>
+            <input type="text" id="soltux-input" placeholder="Digite um comando...">
+        </div>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

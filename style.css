@@ -1,0 +1,138 @@
+    /* RESET E ESTRUTURA DARK */
+    * { box-sizing: border-box; }
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #0a0a0a; /* Fundo bem escuro */
+        color: #eee;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* HEADER ESTILO SOLTUX */
+    .main-header {
+        padding: 15px;
+        background: #000;
+        border-bottom: 2px solid #1a1a1a;
+        text-align: center;
+    }
+    .logo { 
+        font-weight: bold; 
+        font-size: 1.4em; 
+        letter-spacing: 2px;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255,255,255,0.2);
+    }
+    .dev-info { font-size: 0.75em; color: #666; margin-top: 5px; }
+
+    /* MENU DE ABAS NEON */
+    .tab-menu {
+        display: flex;
+        background: #111;
+        border-bottom: 1px solid #333;
+    }
+    .tab-btn {
+        flex: 1;
+        padding: 12px;
+        background: none;
+        border: none;
+        color: #888;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+        text-transform: uppercase;
+        font-size: 0.85em;
+    }
+    .tab-btn.active {
+        background: #1a1a1a;
+        color: #00ffff; /* Ciano Neon */
+        border-bottom: 2px solid #00ffff;
+    }
+
+    /* ÁREA DE CONTEÚDO */
+    .main-content {
+        flex: 1;
+        display: flex;
+        position: relative;
+        overflow: hidden;
+        background: #000;
+    }
+    .content {
+        display: none;
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+    }
+    .content.active { display: flex; }
+
+    /* EDITOR DE CÓDIGO PRO */
+    #code-editor {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: auto;
+        white-space: pre;
+        padding: 20px;
+        background: #0f0f0f;
+        color: #d4d4d4;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        outline: none;
+        border: none;
+    }
+
+    /* RODAPÉ DE AÇÕES */
+    .editor-footer {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        background: #111;
+        border-top: 1px solid #222;
+        flex-shrink: 0;
+    }
+
+    /* BOTÕES ESTILIZADOS */
+    .action-btn {
+        flex: 1;
+        padding: 10px;
+        background: #1a1a1a;
+        color: #fff;
+        border: 1px solid #333;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.75em;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .action-btn:active { transform: scale(0.95); background: #222; }
+    
+    .action-btn.red {
+        background: #c0392b;
+        border: none;
+        color: #fff;
+        box-shadow: 0 0 10px rgba(192, 57, 43, 0.3);
+    }
+
+    /* CONSOLE & TERMINAL */
+    #log-output, #soltux-display {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        background: #000;
+        color: #00ff00; /* Verde clássico de terminal */
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+    }
+    
+    #soltux-input {
+        width: 100%;
+        padding: 12px;
+        background: #050505;
+        border: none;
+        border-top: 1px solid #1a1a1a;
+        color: #00ffff;
+        font-family: monospace;
+        outline: none;
