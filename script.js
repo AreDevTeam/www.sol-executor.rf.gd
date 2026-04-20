@@ -57,10 +57,10 @@ function updateEditor() {
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
-    
+
     const targetContent = document.getElementById(tabId);
     const targetBtn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
-    
+
     if (targetContent) targetContent.classList.add('active');
     if (targetBtn) targetBtn.classList.add('active');
 
@@ -74,16 +74,12 @@ window.log = (message, color = "#4caf50") => {
     const logLine = document.createElement('div');
     logLine.style.color = color;
     logLine.className = 'log-line';
-    
     const timestamp = new Date().toLocaleTimeString();
     logLine.innerHTML = `<span style="color: #666">[${timestamp}]</span> ${message}`;
-    
     logOutput.appendChild(logLine);
-    
     if (logOutput.children.length > CONFIG.maxLogLines) {
         logOutput.removeChild(logOutput.firstChild);
     }
-    
     logOutput.scrollTop = logOutput.scrollHeight;
 };
 
@@ -102,13 +98,8 @@ window.input = async (prompt = "Enter value:") => {
     });
 };
 
-window.clear = () => {
-    logOutput.innerHTML = "";
-};
-
-window.alert = (msg) => {
-    log(`⚠️ ${msg}`, "#ff9800");
-};
+window.clear = () => { logOutput.innerHTML = ""; };
+window.alert = (msg) => { log(`⚠️ ${msg}`, "#ff9800"); };
 
 function terminalPrint(message, color = "#fff") {
     const terminalLine = document.createElement('div');
@@ -124,122 +115,76 @@ function showSyntaxHelp() {
     terminalPrint("                    SOL SYNTAX REFERENCE                    ", "#fff");
     terminalPrint("═══════════════════════════════════════════════════════════", "#00ffff");
     terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ VARIABLES ─────────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ create name              → Declare variable             │", "#fff");
-    terminalPrint("│ create name = value      → Declare and assign           │", "#fff");
-    terminalPrint("│ set name = value         → Update variable              │", "#fff");
-    terminalPrint("│ delete name              → Remove variable              │", "#fff");
+
+    terminalPrint("┌─ VARIÁVEIS ─────────────────────────────────────────────┐", "#00bcd4");
+    terminalPrint("│ create name              → Declara variável             │", "#fff");
+    terminalPrint("│ create name = value      → Declara e atribui            │", "#fff");
+    terminalPrint("│ set name = value         → Atualiza variável            │", "#fff");
+    terminalPrint("│ delete name              → Remove variável              │", "#fff");
     terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
     terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ FUNCTIONS ─────────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ create function name     → Declare function             │", "#fff");
-    terminalPrint("│ create function name(x)  → Function with parameters     │", "#fff");
-    terminalPrint("│ set function             → End function block           │", "#fff");
-    terminalPrint("│ execute(name)            → Call function                │", "#fff");
-    terminalPrint("│ return value             → Return from function         │", "#fff");
+
+    terminalPrint("┌─ FUNÇÕES ───────────────────────────────────────────────┐", "#00bcd4");
+    terminalPrint("│ create function Nome     → Declara função               │", "#fff");
+    terminalPrint("│ create function Nome(x)  → Função com parâmetros        │", "#fff");
+    terminalPrint("│ set function Nome        → Reescreve função             │", "#fff");
+    terminalPrint("│ execute(Nome)            → Chama função                 │", "#fff");
+    terminalPrint("│ execute(Nome('arg'))     → Chama com argumento          │", "#fff");
+    terminalPrint("│ return value             → Retorna valor                │", "#fff");
+    terminalPrint("│ break                    → Fecha qualquer bloco         │", "#fff");
     terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
     terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ CONDITIONALS ──────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ fit (condition) { }      → If statement                 │", "#fff");
-    terminalPrint("│ ifnot { }                → Else block                   │", "#fff");
+
+    terminalPrint("┌─ CONDICIONAIS ──────────────────────────────────────────┐", "#00bcd4");
+    terminalPrint("│ if var = val then        → Se var == val                │", "#fff");
+    terminalPrint("│ if var > val then        → Se var > val                 │", "#fff");
+    terminalPrint("│ if var < val then        → Se var < val                 │", "#fff");
+    terminalPrint("│ if var >= val then       → Se var >= val                │", "#fff");
+    terminalPrint("│ if var <= val then       → Se var <= val                │", "#fff");
+    terminalPrint("│ if not var = val then    → Se var != val                │", "#fff");
+    terminalPrint("│ elcio                    → Senão (else)                 │", "#fff");
+    terminalPrint("│ break                    → Fecha o bloco if/else        │", "#fff");
     terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
     terminalPrint("", "#fff");
-    
+
     terminalPrint("┌─ LOOPS ─────────────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ loop(code)               → Infinite loop                │", "#fff");
-    terminalPrint("│ repeat 10 times { }      → Loop N times                 │", "#fff");
-    terminalPrint("│ foreach item in arr { }  → Iterate array                │", "#fff");
-    terminalPrint("│ break loop               → Exit loop                    │", "#fff");
-    terminalPrint("│ continue loop            → Skip iteration               │", "#fff");
+    terminalPrint("│ loop                     → Loop infinito                │", "#fff");
+    terminalPrint("│ repeat 10 times          → Repete N vezes               │", "#fff");
+    terminalPrint("│ foreach item in arr      → Itera array                  │", "#fff");
+    terminalPrint("│ stoploop                 → Sai do loop (break nativo)   │", "#fff");
+    terminalPrint("│ nextloop                 → Pula iteração (continue)     │", "#fff");
+    terminalPrint("│ break                    → Fecha o bloco do loop        │", "#fff");
     terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
     terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ CONSOLE OUTPUT ────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ log(message)             → Default log (green)          │", "#fff");
-    terminalPrint("│ print(message)           → Same as log                  │", "#fff");
-    terminalPrint("│ error(message)           → Red error message            │", "#fff");
-    terminalPrint("│ warn(message)            → Orange warning               │", "#fff");
-    terminalPrint("│ success(message)         → Green success message        │", "#fff");
-    terminalPrint("│ checkconsole             → Switch to console tab        │", "#fff");
+
+    terminalPrint("┌─ SAÍDA ─────────────────────────────────────────────────┐", "#00bcd4");
+    terminalPrint("│ log(msg)                 → Verde                        │", "#fff");
+    terminalPrint("│ print(msg)               → Verde (alias)                │", "#fff");
+    terminalPrint("│ error(msg)               → Vermelho                     │", "#fff");
+    terminalPrint("│ warn(msg)                → Laranja                      │", "#fff");
+    terminalPrint("│ success(msg)             → Verde claro                  │", "#fff");
+    terminalPrint("│ checkconsole             → Muda para aba console        │", "#fff");
     terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
     terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ TIME & DATE ───────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ hour                     → Current hour (0-23)          │", "#fff");
-    terminalPrint("│ minutes                  → Current minutes (0-59)       │", "#fff");
-    terminalPrint("│ seconds                  → Current seconds (0-59)       │", "#fff");
-    terminalPrint("│ day                      → Current day of month         │", "#fff");
-    terminalPrint("│ month                    → Current month (1-12)         │", "#fff");
-    terminalPrint("│ year                     → Current year                 │", "#fff");
-    terminalPrint("│ timestamp                → Unix timestamp (ms)          │", "#fff");
-    terminalPrint("│ wait(1000)               → Pause execution (ms)         │", "#fff");
-    terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
-    terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ MATH ──────────────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ math(2 + 2)              → Evaluate expression          │", "#fff");
-    terminalPrint("│ math([variable] * 5)     → Use variables in math        │", "#fff");
-    terminalPrint("│ random                   → Random 0-1                   │", "#fff");
-    terminalPrint("│ random 1 to 100          → Random integer in range      │", "#fff");
-    terminalPrint("│ rng(min, max)            → Random number function       │", "#fff");
-    terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
-    terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ ARRAYS ────────────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ array [1, 2, 3]          → Create array                 │", "#fff");
-    terminalPrint("│ length of arr            → Get array length             │", "#fff");
-    terminalPrint("│ push item to arr         → Add to end                   │", "#fff");
-    terminalPrint("│ remove from arr at 0     → Remove by index              │", "#fff");
-    terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
-    terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ FIREBASE (WebSol) ─────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ setfirebase(config)      → Initialize Firebase          │", "#fff");
-    terminalPrint("│ postfire(path, data)     → Write to Firebase            │", "#fff");
-    terminalPrint("│ postfire(path)           → Post with auto-value         │", "#fff");
-    terminalPrint("│ getfire(path) -> var     → Read from Firebase           │", "#fff");
-    terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
-    terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ LIBRARIES ─────────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ importService('name')    → Load external library        │", "#fff");
-    terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
-    terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ HELPER FUNCTIONS ──────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ sleep(ms)                → Async wait                   │", "#fff");
-    terminalPrint("│ range(1, 10)             → Generate number array        │", "#fff");
-    terminalPrint("│ shuffle(array)           → Randomize array order        │", "#fff");
-    terminalPrint("│ pick(array)              → Get random element           │", "#fff");
-    terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
-    terminalPrint("", "#fff");
-    
-    terminalPrint("┌─ EXAMPLES ──────────────────────────────────────────────┐", "#00bcd4");
-    terminalPrint("│ create x = 10                                           │", "#fff");
-    terminalPrint("│ fit (x > 5) {                                           │", "#fff");
-    terminalPrint("│     log('X is greater than 5')                          │", "#fff");
-    terminalPrint("│ ifnot {                                                 │", "#fff");
-    terminalPrint("│     log('X is 5 or less')                               │", "#fff");
-    terminalPrint("│ }                                                       │", "#fff");
+
+    terminalPrint("┌─ EXEMPLO ───────────────────────────────────────────────┐", "#00bcd4");
+    terminalPrint("│ create test = rng(1, 10)                                │", "#fff");
+    terminalPrint("│ if test = 10 then                                       │", "#fff");
+    terminalPrint("│     log('dez!')                                         │", "#fff");
+    terminalPrint("│ elcio                                                   │", "#fff");
+    terminalPrint("│     set test = rng(1, 10)                               │", "#fff");
+    terminalPrint("│ break                                                   │", "#fff");
     terminalPrint("│                                                         │", "#fff");
-    terminalPrint("│ repeat 5 times {                                        │", "#fff");
-    terminalPrint("│     print('Hello World')                                │", "#fff");
-    terminalPrint("│     wait(1000)                                          │", "#fff");
-    terminalPrint("│ }                                                       │", "#fff");
-    terminalPrint("│                                                         │", "#fff");
-    terminalPrint("│ create function greet(name) {                           │", "#fff");
+    terminalPrint("│ create function greet(name)                             │", "#fff");
     terminalPrint("│     success('Hello ' + name)                            │", "#fff");
-    terminalPrint("│ set function                                            │", "#fff");
+    terminalPrint("│ break                                                   │", "#fff");
     terminalPrint("│                                                         │", "#fff");
     terminalPrint("│ execute(greet('World'))                                 │", "#fff");
     terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
     terminalPrint("", "#fff");
-    
+
     terminalPrint("═══════════════════════════════════════════════════════════", "#00ffff");
-    terminalPrint("For terminal commands, type /help", "#bbb");
+    terminalPrint("Para comandos do terminal, digite /help", "#bbb");
     terminalPrint("", "#fff");
 }
 
@@ -262,13 +207,11 @@ async function importService(name) {
     try {
         const response = await fetch(`${PROXY_URL}${name}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
         const code = await response.text();
         const scriptTag = document.createElement('script');
         scriptTag.id = `lib-${name}`;
         scriptTag.text = code;
         document.head.appendChild(scriptTag);
-        
         lastTerminalLine.remove();
         terminalPrint(`✓ Service '${name}' loaded successfully.`, "#4caf50");
     } catch (err) {
@@ -277,9 +220,19 @@ async function importService(name) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+//  TRANSPILADOR SOL → JAVASCRIPT
+//
+//  REGRAS CENTRAIS:
+//   • break (sozinho na linha) = "}"  — fecha QUALQUER bloco
+//   • Blocos abrem com "{" automaticamente nas keywords
+//   • O usuário NÃO escreve { } — o transpilador insere
+//   • stoploop = break nativo JS  (sai do loop sem fechar bloco)
+//   • nextloop = continue nativo JS
+// ─────────────────────────────────────────────────────────────
 async function runSol() {
     let code = editor.innerText.trim();
-    
+
     if (!code) {
         log("No code to execute.", "#ff9800");
         return;
@@ -289,93 +242,187 @@ async function runSol() {
     logOutput.innerHTML = "";
     log("🚀 Execution started...", "#2196f3");
 
+    // ── 1. Remove comentários (suporta -- e //) ──────────────
+    code = code.replace(/--.*$/gm, "");
     code = code.replace(/\/\/.*$/gm, "");
     code = code.replace(/\/\*[\s\S]*?\*\//g, "");
 
+    // ── 2. Imports ───────────────────────────────────────────
     const importRegex = /importService\s*\(\s*["'](.*?)["']\s*\)/ig;
-    const matches = [...code.matchAll(importRegex)];
-    for (const match of matches) await importService(match[1]);
+    const importMatches = [...code.matchAll(importRegex)];
+    for (const match of importMatches) await importService(match[1]);
 
+    // ── 3. Firebase ──────────────────────────────────────────
     code = code.replace(/setfirebase\s*\((.*?)\)/ig, "WebSol.setfirebase($1)");
     code = code.replace(/postfire\s*\((.*?)\s*,\s*(.*?)\)/ig, "await WebSol.postfire($1, $2)");
     code = code.replace(/postfire\s*\((['"][\w\s/]+['"])\)(?!\s*,)/ig, "await WebSol.postfire($1, true)");
     code = code.replace(/getfire\s*\((.*?)\)\s*->\s*(\w+)/ig, "let $2 = await WebSol.getfire($1)");
 
-    code = code.replace(/math\((.*?)\)/ig, (match, content) => {
-        let transform = content.replace(/\[(.*?)\]/g, "$1").replace(/÷/g, "/").replace(/×/g, "*");
-        return `eval(\`${transform}\`)`;
+    // ── 4. Math ──────────────────────────────────────────────
+    code = code.replace(/math\((.*?)\)/ig, (_, content) => {
+        let t = content.replace(/\[(.*?)\]/g, "$1").replace(/÷/g, "/").replace(/×/g, "*");
+        return `eval(\`${t}\`)`;
     });
 
-    code = code.replace(/\bhour\b/ig, "(new Date().getHours())");
-    code = code.replace(/\bminutes\b/ig, "(new Date().getMinutes())");
-    code = code.replace(/\bseconds\b/ig, "(new Date().getSeconds())");
-    code = code.replace(/\bday\b/ig, "(new Date().getDate())");
-    code = code.replace(/\bmonth\b/ig, "(new Date().getMonth() + 1)");
-    code = code.replace(/\byear\b/ig, "(new Date().getFullYear())");
+    // ── 5. Tempo / Data ──────────────────────────────────────
+    code = code.replace(/\bhour\b/ig,      "(new Date().getHours())");
+    code = code.replace(/\bminutes\b/ig,   "(new Date().getMinutes())");
+    code = code.replace(/\bseconds\b/ig,   "(new Date().getSeconds())");
+    code = code.replace(/\bday\b/ig,       "(new Date().getDate())");
+    code = code.replace(/\bmonth\b/ig,     "(new Date().getMonth() + 1)");
+    code = code.replace(/\byear\b/ig,      "(new Date().getFullYear())");
     code = code.replace(/\btimestamp\b/ig, "(Date.now())");
 
-    code = code.replace(/\bfit\s*\(/ig, "if (");
-    code = code.replace(/\bifnot\s*{/ig, "} else {");
-    code = code.replace(/\bifnot\b/ig, "else");
+    // ── 6. FUNÇÕES ───────────────────────────────────────────
+    // DEVE VIR ANTES das regex de create/set de variáveis.
+    // O corpo da função é fechado pelo "break" (passo 11).
+    //
+    //   create function Nome(a, b)  →  let Nome = async function(a, b) {
+    //   create function Nome        →  let Nome = async function() {
+    //   set function Nome(a, b)     →  Nome = async function(a, b) {
+    //   set function Nome           →  Nome = async function() {
+    //
+    code = code.replace(
+        /\bcreate\s+function\s+(\w+)\s*\(\s*(.*?)\s*\)/ig,
+        "let $1 = async function($2) {"
+    );
+    code = code.replace(
+        /\bcreate\s+function\s+(\w+)/ig,
+        "let $1 = async function() {"
+    );
+    code = code.replace(
+        /\bset\s+function\s+(\w+)\s*\(\s*(.*?)\s*\)/ig,
+        "$1 = async function($2) {"
+    );
+    code = code.replace(
+        /\bset\s+function\s+(\w+)/ig,
+        "$1 = async function() {"
+    );
 
-    code = code.replace(/create\s+(\w+)(?!\s*=)/ig, "let $1;");
-    code = code.replace(/create\s+(\w+)\s*=\s*/ig, "let $1 = ");
-    code = code.replace(/set\s+(\w+)\s*=\s*/ig, "$1 = ");
-    code = code.replace(/delete\s+(\w+)/ig, "$1 = undefined;");
+    // ── 7. VARIÁVEIS ─────────────────────────────────────────
+    //   create x = valor  →  let x = valor
+    //   create x          →  let x
+    //   set x = valor     →  x = valor
+    //   delete x          →  x = undefined
+    //
+    code = code.replace(/\bcreate\s+(\w+)\s*=\s*/ig, "let $1 = ");
+    code = code.replace(/\bcreate\s+(\w+)\s*$/img,   "let $1");
+    code = code.replace(/\bset\s+(\w+)\s*=\s*/ig,    "$1 = ");
+    code = code.replace(/\bdelete\s+(\w+)/ig,         "$1 = undefined");
 
-    // --- G. CORE BLOCK LOGIC (UNIVERSAL BREAK SYSTEM) ---
+    // ── 8. CONDICIONAIS ──────────────────────────────────────
+    //
+    //  Sintaxe SOL:
+    //    if VAR = VAL then         →  if (VAR === VAL) {
+    //    if VAR > VAL then         →  if (VAR > VAL) {
+    //    if not VAR = VAL then     →  if (VAR !== VAL) {
+    //    elcio                     →  } else {
+    //
+    //  O bloco é fechado pelo "break" universal (passo 11).
+    //  Operadores:  =  →  ===  |  !=  →  !==  |  > < >= <=  mantidos
+    //
 
-// 1. Abertura de Funções (Create cria, Set reescreve)
-code = code.replace(/create\s+function\s+(\w+)/ig, "let $1 = async function() {");
-code = code.replace(/set\s+function\s+(\w+)/ig, "$1 = async function() {");
+    function mapOp(op) {
+        if (op === "=")  return "===";
+        if (op === "!=") return "!==";
+        return op;
+    }
 
-// 2. Condicionais (Fit e Elcio)
-// Agora eles abrem a chave, mas quem fecha é o break lá embaixo
-code = code.replace(/\bfit\s*\((.*?)\)/ig, "if ($1) {");
-code = code.replace(/\bifnot\b|\belcio\b/ig, "} else {");
+    // "if not VAR OP VAL then"
+    code = code.replace(
+        /\bif\s+not\s+(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+?)\s+then\b/ig,
+        (_, v, op, val) => `if (${v} ${mapOp(op) === "===" ? "!==" : "!(" + v + " " + mapOp(op) + " " + val.trim() + ")"}) {`
+    );
 
-// 3. O FECHAMENTO UNIVERSAL (O Coração do SOL)
-// O 'break' agora fecha QUALQUER bloco: function, if, else ou loop.
-code = code.replace(/\bbreak\b|\bquebrar\b/ig, "}"); 
+    // simplifica: "if not VAR = VAL then" → "if (VAR !== VAL) {"
+    // reprocessa mais limpo linha a linha via função
+    code = code.replace(
+        /\bif\s+not\s+(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+?)\s+then\b/ig,
+        (_, v, op, val) => `if (${v} ${op === "=" ? "!==" : "!"+ mapOp(op)} ${val.trim()}) {`
+    );
 
-// 4. Loops (Simplificado para usar o fechamento universal)
-code = code.replace(/\bloop\b/ig, "while(true) {");
+    // "if VAR OP VAL then"
+    code = code.replace(
+        /\bif\s+(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+?)\s+then\b/ig,
+        (_, v, op, val) => `if (${v} ${mapOp(op)} ${val.trim()}) {`
+    );
 
-    code = code.replace(/repeat\s+(\d+)\s+times\s*{/ig, "for(let __i=0; __i<$1; __i++){");
-    code = code.replace(/foreach\s+(\w+)\s+in\s+(\w+)\s*{/ig, "for(let $1 of $2){");
-    code = code.replace(/\bbreak\b/ig, "}");
-    code = code.replace(/continue\s+loop/ig, "continue");
-    
-    code = code.replace(/execute\s*\((.*?)\)/ig, "await $1()");
-    code = code.replace(/(?<!a)wait\s*\(/g, "await wait(");
+    // elcio → } else {
+    code = code.replace(/\belcio\b/ig, "} else {");
 
-    code = code.replace(/wait\s*\(\s*checkconsole\s*\)/ig, "await new Promise(r => { consoleResolver = r; })");
-    code = code.replace(/(?<!await new Promise\(r => { consoleResolver = r; }\s*)\bcheckconsole\b/ig, "switchTab('console');");
+    // ── 9. LOOPS ─────────────────────────────────────────────
+    //
+    //  loop              →  while(true) {
+    //  repeat N times    →  for(let __i=0; __i<N; __i++) {
+    //  foreach x in arr  →  for(let x of arr) {
+    //  stoploop          →  break   (JS nativo — sai do loop)
+    //  nextloop          →  continue (JS nativo)
+    //
+    //  O bloco é fechado pelo "break" universal (passo 11).
+    //
+    code = code.replace(/\bloop\b/ig,                           "while(true) {");
+    code = code.replace(/\brepeat\s+(\d+)\s+times\b/ig,         "for(let __i=0; __i<$1; __i++) {");
+    code = code.replace(/\bforeach\s+(\w+)\s+in\s+(\w+)\b/ig,   "for(let $1 of $2) {");
+    code = code.replace(/\bstoploop\b/ig,                       "__STOPLOOP__");
+    code = code.replace(/\bnextloop\b/ig,                       "__NEXTLOOP__");
 
-    code = code.replace(/print\s*\((.*?)\)/ig, "log($1)");
-    code = code.replace(/error\s*\((.*?)\)/ig, "log($1, '#f44336')");
-    code = code.replace(/warn\s*\((.*?)\)/ig, "log($1, '#ff9800')");
-    code = code.replace(/success\s*\((.*?)\)/ig, "log($1, '#4caf50')");
+    // ── 10. execute() ────────────────────────────────────────
+    //
+    //  execute(Nome('arg'))  →  await Nome('arg')
+    //  execute(Nome)         →  await Nome()
+    //
+    code = code.replace(/\bexecute\s*\(\s*(\w+\s*\(.*?\))\s*\)/ig, "await $1");
+    code = code.replace(/\bexecute\s*\(\s*(\w+)\s*\)/ig,            "await $1()");
 
-    code = code.replace(/array\s*\[(.*?)\]/ig, "[$1]");
-    code = code.replace(/object\s*{(.*?)}/ig, "{$1}");
-    code = code.replace(/length\s+of\s+(\w+)/ig, "$1.length");
-    code = code.replace(/push\s+(\w+)\s+to\s+(\w+)/ig, "$2.push($1)");
-    code = code.replace(/remove\s+from\s+(\w+)\s+at\s+(\d+)/ig, "$1.splice($2, 1)");
+    // ── 11. BREAK = FECHAMENTO UNIVERSAL ─────────────────────
+    //
+    //  "break" sozinho em uma linha  →  "}"
+    //  Fecha função, if, else, loop — qualquer bloco aberto.
+    //
+    code = code.replace(/^\s*\bbreak\b\s*$/img, "}");
 
-    code = code.replace(/random\s+(\d+)\s+to\s+(\d+)/ig, "rng($1, $2)");
-    code = code.replace(/random/ig, "Math.random()");
+    // ── 12. Restaura stoploop / nextloop ─────────────────────
+    //  (guardados antes do break para não serem transformados em "}")
+    code = code.replace(/__STOPLOOP__/g, "break");
+    code = code.replace(/__NEXTLOOP__/g, "continue");
 
+    // ── 13. wait() ───────────────────────────────────────────
+    code = code.replace(/(?<!await )\bwait\s*\(/g, "await wait(");
+
+    // ── 14. checkconsole ─────────────────────────────────────
+    code = code.replace(
+        /\bwait\s*\(\s*checkconsole\s*\)/ig,
+        "await new Promise(r => { consoleResolver = r; })"
+    );
+    code = code.replace(/\bcheckconsole\b/ig, "switchTab('console');");
+
+    // ── 15. Arrays / Objetos / Utilitários ───────────────────
+    code = code.replace(/\barray\s*\[(.*?)\]/ig,                   "[$1]");
+    code = code.replace(/\bobject\s*\{(.*?)\}/ig,                  "{$1}");
+    code = code.replace(/\blength\s+of\s+(\w+)/ig,                 "$1.length");
+    code = code.replace(/\bpush\s+(\w+)\s+to\s+(\w+)/ig,           "$2.push($1)");
+    code = code.replace(/\bremove\s+from\s+(\w+)\s+at\s+(\d+)/ig,  "$1.splice($2, 1)");
+
+    // ── 16. Random ───────────────────────────────────────────
+    code = code.replace(/\brandom\s+(\d+)\s+to\s+(\d+)/ig, "rng($1, $2)");
+    code = code.replace(/\brandom\b/ig,                     "Math.random()");
+
+    // ── 17. Helpers injetados no contexto ────────────────────
     const helpers = `
-        const rng = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-        const sleep = ms => new Promise(r => setTimeout(r, ms));
-        const range = (start, end) => Array.from({length: end - start + 1}, (_, i) => start + i);
-        const shuffle = arr => arr.sort(() => Math.random() - 0.5);
-        const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+        const rng     = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const sleep   = ms => new Promise(r => setTimeout(r, ms));
+        const range   = (start, end) => Array.from({length: end - start + 1}, (_, i) => start + i);
+        const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+        const pick    = arr => arr[Math.floor(Math.random() * arr.length)];
+        const print   = msg => log(msg);
+        const error   = msg => log(String(msg), '#f44336');
+        const warn    = msg => log(String(msg), '#ff9800');
+        const success = msg => log(String(msg), '#4caf50');
     `;
 
     const finalCode = `${helpers}\n${code}`;
 
+    // ── 18. Execução ─────────────────────────────────────────
     try {
         const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
         const startTime = Date.now();
@@ -384,6 +431,10 @@ code = code.replace(/\bloop\b/ig, "while(true) {");
         log(`✓ Execution completed in ${executionTime}ms`, "#4caf50");
     } catch (err) {
         log(`✗ RUNTIME ERROR: ${err.message}`, "#f44336");
+        // Mostra código transpilado no console do dev para debug
+        console.groupCollapsed("SOL transpiled code");
+        console.log(finalCode);
+        console.groupEnd();
         console.error(err);
     }
 }
@@ -393,26 +444,28 @@ async function exportProject() {
         terminalPrint("[ERR] JSZip library not loaded!", "#f44336");
         return;
     }
-    
+
     const zip = new JSZip();
     const code = editor.innerText;
     const metadata = {
-        version: "1.7.3",
+        version: "2.0.0",
         developer: "AreDev",
         created: new Date().toISOString(),
         lines: code.split('\n').length
     };
-    
+
     zip.file("script.sol", code);
     zip.file("metadata.json", JSON.stringify(metadata, null, 2));
-    zip.file("README.md", `# SOL Project Export\n\nVersion: ${metadata.version}\nCreated: ${metadata.created}\nLines: ${metadata.lines}`);
-    
+    zip.file("README.md",
+        `# SOL Project Export\n\nVersion: ${metadata.version}\nCreated: ${metadata.created}\nLines: ${metadata.lines}`
+    );
+
     const content = await zip.generateAsync({type:"blob"});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(content);
     a.download = `SOL_Project_${Date.now()}.zip`;
     a.click();
-    
+
     terminalPrint("✓ Project exported successfully.", "#4caf50");
 }
 
@@ -427,16 +480,14 @@ function clearEditor() {
 function handleFile(input) {
     const file = input.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
         editor.innerText = e.target.result;
         updateEditor();
         log(`File loaded: ${file.name}`, "#4caf50");
     };
-    reader.onerror = () => {
-        log("Failed to read file.", "#f44336");
-    };
+    reader.onerror = () => { log("Failed to read file.", "#f44336"); };
     reader.readAsText(file);
 }
 
@@ -473,14 +524,14 @@ soltuxInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         const val = soltuxInput.value.trim();
         if (!val) return;
-        
+
         commandHistory.push(val);
         historyIndex = commandHistory.length;
-        
+
         const parts = val.split(' ');
         const cmd = parts[0];
         const args = parts.slice(1);
-        
+
         soltuxInput.value = "";
         terminalPrint(`E:\\> ${val}`, "#fff");
 
@@ -489,47 +540,47 @@ soltuxInput.addEventListener('keydown', async (e) => {
                 if (args[0]) await importService(args[0]);
                 else terminalPrint("Usage: /getlib <library-name>", "#ff9800");
                 break;
-            
+
             case "/clear":
                 soltuxDisplay.innerHTML = "";
                 break;
-            
+
             case "/ver":
             case "/version":
                 terminalPrint("SOL Executor v2.0.0 Enhanced Edition", "#00ffff");
                 terminalPrint("Developer: AreDev", "#00ffff");
                 break;
-            
+
             case "/help":
                 terminalPrint("═══════════════════════════════════════", "#00ffff");
                 terminalPrint("        SOLTUX TERMINAL COMMANDS        ", "#fff");
                 terminalPrint("═══════════════════════════════════════", "#00ffff");
                 terminalPrint("", "#fff");
-                terminalPrint("  /getlib <name>  - Load external library", "#fff");
-                terminalPrint("  /clear          - Clear terminal screen", "#fff");
-                terminalPrint("  /ver            - Show version info", "#fff");
-                terminalPrint("  /help           - Show terminal commands", "#fff");
-                terminalPrint("  /helpsyntax     - Show SOL syntax guide", "#fff");
-                terminalPrint("  /save           - Save code to browser storage", "#fff");
-                terminalPrint("  /load           - Load code from storage", "#fff");
-                terminalPrint("  /debug on/off   - Toggle debug mode", "#fff");
-                terminalPrint("  /export         - Export project as ZIP", "#fff");
+                terminalPrint("  /getlib <n>    - Load external library", "#fff");
+                terminalPrint("  /clear         - Clear terminal screen", "#fff");
+                terminalPrint("  /ver           - Show version info", "#fff");
+                terminalPrint("  /help          - Show terminal commands", "#fff");
+                terminalPrint("  /helpsyntax    - Show SOL syntax guide", "#fff");
+                terminalPrint("  /save          - Save code to browser storage", "#fff");
+                terminalPrint("  /load          - Load code from storage", "#fff");
+                terminalPrint("  /debug on/off  - Toggle debug mode", "#fff");
+                terminalPrint("  /export        - Export project as ZIP", "#fff");
                 terminalPrint("", "#fff");
                 terminalPrint("═══════════════════════════════════════", "#00ffff");
                 break;
-            
+
             case "/helpsyntax":
                 showSyntaxHelp();
                 break;
-            
+
             case "/save":
                 saveToLocalStorage();
                 break;
-            
+
             case "/load":
                 loadFromLocalStorage();
                 break;
-            
+
             case "/debug":
                 if (args[0] === "on") {
                     runtime.debugMode = true;
@@ -541,11 +592,11 @@ soltuxInput.addEventListener('keydown', async (e) => {
                     terminalPrint(`Debug mode is ${runtime.debugMode ? 'ON' : 'OFF'}`, "#00bcd4");
                 }
                 break;
-            
+
             case "/export":
                 await exportProject();
                 break;
-            
+
             default:
                 terminalPrint(`Unknown command: ${cmd}. Type /help for available commands.`, "#f44336");
         }
@@ -590,14 +641,12 @@ lineNumbers.addEventListener('click', (e) => {
     }
 });
 
-window.addEventListener('beforeunload', (e) => {
-    if (editor.innerText.trim()) {
-        saveToLocalStorage();
-    }
+window.addEventListener('beforeunload', () => {
+    if (editor.innerText.trim()) saveToLocalStorage();
 });
 
 terminalPrint("═══════════════════════════════════════", "#00ffff");
-terminalPrint("  SOL EXECUTOR v1.7.3 Enhanced Edition", "#fff");
+terminalPrint("  SOL EXECUTOR v1.7.4 Enhanced Edition", "#fff");
 terminalPrint("  Developer: AreDev", "#00bcd4");
 terminalPrint("═══════════════════════════════════════", "#00ffff");
 terminalPrint("Type /help for commands | /helpsyntax for syntax", "#bbb");
