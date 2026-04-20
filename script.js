@@ -323,16 +323,10 @@ async function runSol() {
     code = code.replace(/set\s+(\w+)\s*=\s*/ig, "$1 = ");
     code = code.replace(/delete\s+(\w+)/ig, "$1 = undefined;");
 
-    // 1. Primeiro trata funções COM parênteses (ex: create function Somar(a, b))
-code = code.replace(/create\s+function\s+(\w+)\s*\((.*?)\)/ig, "let $1 = async function($2) {");
-
-// 2. Depois trata funções SEM parênteses (ex: create function Iniciar)
-// Usamos um lookahead (?!...) para não pegar o que já foi trocado acima
-code = code.replace(/create\s+function\s+(\w+)(?!\s*\()/ig, "let $1 = async function() {");
-
-// 3. O fechamento continua o mesmo
-code = code.replace(/set\s+function/ig, "};");
-
+    code = code.replace(/create\s+function\s+/ig, "create_func_");
+    code = code.replace(/create_func_(\w+)\s*\((.*?)\)/ig, "let $1 = async function($2) {");
+    code = code.replace(/create_func_(\w+)(?!\s*\()/ig, "let $1 = async function() {");
+    code = code.replace(/set\s+function/ig, "};");
 
     code = code.replace(/loop\s*\(([\s\S]*?)\)/g, "while(true){ $1 }");
     code = code.replace(/repeat\s+(\d+)\s+times\s*{/ig, "for(let __i=0; __i<$1; __i++){");
