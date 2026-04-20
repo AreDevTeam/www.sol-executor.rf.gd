@@ -1,16 +1,24 @@
-// --- DATABASE & PROXY CONFIG ---
+/**
+ * SOL EXECUTOR - OFFICIAL CORE
+ * Developer: E (AreDev)
+ * Version: 1.5.0-SECURE
+ */
+
+// --- CONFIGURATION ---
 const PROXY_URL = "https://aredev-security.vercel.app/api/download?file=";
 
-let consoleResolver = null; // Guard for wait(checkconsole)
-let lastTerminalLine = null; // For overwrite loading effect
+let consoleResolver = null; 
+let lastTerminalLine = null; 
 
+// UI ELEMENTS
 const editor = document.getElementById('code-editor');
 const lineNumbers = document.getElementById('line-numbers');
 const logOutput = document.getElementById('log-output');
 const soltuxDisplay = document.getElementById('soltux-display');
 const soltuxInput = document.getElementById('soltux-input');
 
-// --- EDITOR SYSTEM (LINE NUMBERS) ---
+// --- 1. CORE UTILS & UI ---
+
 function updateEditor() {
     if (!lineNumbers) return;
     const text = editor.innerText;
@@ -18,132 +26,6 @@ function updateEditor() {
     lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
 }
 
-// --- SECURE SERVICE IMPORTER ---
-async function importService(name) {
-    if (document.getElementById(`service-${name}`)) return;
-
-    // Visual loading effect in terminal
-    lastTerminalLine = document.createElement('div');
-    lastTerminalLine.style.color = "#00ffff";
-    soltuxDisplay.appendChild(lastTerminalLine);
-
-    for (let i = 0; i <= 100; i += 20) {
-        lastTerminalLine.innerText = `[${name}] Carregando: ${i}%`;
-        await new Promise(resolve => setTimeout(resolve, 80));
-    }
-
-    try {
-        const response = await fetch(`${PROXY_URL}${name}`);
-        
-        if (!response.ok) {
-            lastTerminalLine.innerText = `[🚫 SEC] Falha ao validar ${name} na Proxy.`;
-            lastTerminalLine.style.color = "#f44336";
-            return;
-        }
-
-        const scriptContent = await response.text();
-        const scriptTag = document.createElement('script');
-        scriptTag.id = `service-${name}`;
-        scriptTag.text = scriptContent;
-        document.head.appendChild(scriptTag);
-        
-        lastTerminalLine.remove(); // Clear loading line on success
-        terminalPrint(`[OK] Serviço '${name}' injetado com sucesso.`, "#4caf50");
-    } catch (error) {
-        lastTerminalLine.innerText = `[ERR] Erro de conexão com aredev-security.`;
-        lastTerminalLine.style.color = "#f44336";
-    }
-}
-
-// --- MAIN ENGINE .SOL ---
-async function runSol() {
-    let code = editor.innerText;
-    
-    switchTab('console');
-    logOutput.innerHTML = "";
-
-    // 1. CLEANING COMMENTS
-    code = code.replace(/\/\/.*$/gm, ""); 
-    code = code.replace(/\/\*[\s\S]*?\*\//g, ""); 
-
-    // 2. AUTOMATIC SERVICE DETECTION
-    const importRegex = /importService\s*\(\s*["'](.*?)["']\s*\)/ig;
-    const matches = [...code.matchAll(importRegex)];
-    for (const match of matches) {
-        await importService(match[1]);
-    }
-
-    // 3. VARIABLE & SYNTAX TREATMENT
-    code = code.replace(/create\s+(\w+)(?!\s*=)/ig, "let $1;"); 
-    code = code.replace(/create\s+(\w+)\s*=\s*/ig, "let $1 = ");
-    code = code.replace(/set\s+(\w+)\s*=\s*/ig, "$1 = ");
-
-    // 4. MATH WITH BRACKETS [] AND DIVISION ÷
-    code = code.replace(/math\((.*?)\)/ig, (match, content) => {
-        let transform = content.replace(/\[(.*?)\]/g, "$1").replace(/÷/g, "/");
-        return `eval("${transform}")`;
-    });
-
-    // 5. CHECKCONSOLE LOGIC
-    code = code.replace(/wait\s*\(\s*checkconsole\s*\)/ig, "await new Promise(r => { consoleResolver = r; })");
-    code = code.replace(/(?<!await new Promise\(r => { consoleResolver = r; }\s*)\bcheckconsole\b/ig, "switchTab('console');");
-
-    // 6. BASE TRANSPILER
-    code = code.replace(/set function\s+(\w+)/ig, "$1 = async function()");
-    code = code.replace(/create function\s+(\w+)/ig, "let $1 = async function()");
-    code = code.replace(/loop\s*\(([\s\S]*)\)/g, "while(true){ $1 }");
-    code = code.replace(/execute\s*\((.*?)\)/ig, "await $1()");
-    code = code.replace(/(?<!a)wait\s*\(/g, "await wait(");
-
-    const rngHelper = "const rng = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;";
-    const finalExecutableCode = `${rngHelper}\n${code}`;
-
-    try {
-        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-        await new AsyncFunction(finalExecutableCode)();
-    } catch (err) {
-        let errorMsg = err.message;
-        if (errorMsg.includes("is not defined")) errorMsg = `Variavel inexistente: ${errorMsg.split(' ')[0]}`;
-        log("ERR: " + errorMsg, "#f44336");
-    }
-}
-
-// --- SOLTUX TERMINAL ---
-soltuxInput.addEventListener('keydown', async (event) => {
-    if (event.key === 'Enter') {
-        const inputVal = soltuxInput.value.trim();
-        const [command, argument] = inputVal.split(' ');
-        soltuxInput.value = "";
-        terminalPrint(`E:\\> ${inputVal}`, "#fff");
-
-        switch(command.toLowerCase()) {
-            case "/getlib":
-                if(argument) {
-                    await importService(argument);
-                } else {
-                    terminalPrint("[ERR] Uso: /getlib NomeDaLib", "#f44336");
-                }
-                break;
-            case "/clear":
-                soltuxDisplay.innerHTML = "";
-                break;
-            case "/help":
-                terminalPrint("AVAILABLE: /getlib, /clear, /helpsintax", "#ffeb3b");
-                break;
-            case "/helpsintax":
-                terminalPrint("--- .SOL SYNTAX ---", "#00ffff");
-                terminalPrint("math([x] ÷ 2) | rng(1, 5)", "#fff");
-                terminalPrint("create x | set x = 10", "#fff");
-                terminalPrint("checkconsole | wait(checkconsole)", "#fff");
-                terminalPrint("create function | log()", "#fff");
-                break;
-            default:
-                terminalPrint(`'${command}' not recognized.`, "#f44336");
-        }
-    }
-});
-
-// --- UI & CORE UTILS ---
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
@@ -171,8 +53,132 @@ function terminalPrint(message, color) {
     soltuxDisplay.appendChild(terminalLine);
 }
 
-// --- BOOT MESSAGES ---
+// --- 2. MODULAR INJECTION (THE BRIDGE) ---
+
+async function importService(name) {
+    if (document.getElementById(`lib-${name}`)) return; // Prevent double injection
+
+    lastTerminalLine = document.createElement('div');
+    lastTerminalLine.style.color = "#00ffff";
+    soltuxDisplay.appendChild(lastTerminalLine);
+
+    // Visual Loading Effect
+    for (let i = 0; i <= 100; i += 25) {
+        lastTerminalLine.innerText = `[${name}] Carregando: ${i}%`;
+        await new Promise(r => setTimeout(r, 60));
+    }
+
+    try {
+        const response = await fetch(`${PROXY_URL}${name}`);
+        if (!response.ok) throw new Error("Acesso negado pela Proxy.");
+
+        const code = await response.text();
+        const scriptTag = document.createElement('script');
+        scriptTag.id = `lib-${name}`;
+        scriptTag.text = code;
+        document.head.appendChild(scriptTag);
+        
+        lastTerminalLine.remove();
+        terminalPrint(`[OK] Biblioteca '${name}' injetada com sucesso.`, "#4caf50");
+    } catch (err) {
+        lastTerminalLine.innerText = `[FAIL] Erro ao carregar ${name}.`;
+        lastTerminalLine.style.color = "#f44336";
+    }
+}
+
+// --- 3. THE TRANSPILER ENGINE ---
+
+async function runSol() {
+    let code = editor.innerText;
+    
+    switchTab('console');
+    logOutput.innerHTML = "";
+
+    // A. CLEANING & PRE-PROCESSING
+    code = code.replace(/\/\/.*$/gm, ""); 
+    code = code.replace(/\/\*[\s\S]*?\*\//g, ""); 
+
+    // B. DYNAMIC IMPORT DETECTION
+    const importRegex = /importService\s*\(\s*["'](.*?)["']\s*\)/ig;
+    const matches = [...code.matchAll(importRegex)];
+    for (const match of matches) {
+        await importService(match[1]);
+    }
+
+    // C. FIREBASE & NETWORK CUSTOM SYNTAX (WebSol Dependent)
+    code = code.replace(/setfirebase\s*\((.*?)\)/ig, "WebSol.setfirebase($1)");
+    code = code.replace(/postfire\s*\((.*?)\s*,\s*(.*?)\)/ig, "await WebSol.postfire($1, $2)");
+    code = code.replace(/getfire\s*\((.*?)\)\s*->\s*(\w+)/ig, "let $2 = await WebSol.getfire($1)");
+    code = code.replace(/getlistfire\s*\((.*?)\)\s*->\s*(\w+)/ig, "let $2 = await WebSol.getlistfire($1)");
+    code = code.replace(/postlink\s*\((.*?)\s*,\s*(.*?)\)\s*->\s*(\w+)/ig, "let $3 = await WebSol.postlink($1, $2)");
+    code = code.replace(/getlink\s*\((.*?)\)\s*->\s*(\w+)/ig, "let $2 = await WebSol.getlink($1)");
+
+    // D. MATH SYSTEM
+    code = code.replace(/math\((.*?)\)/ig, (match, content) => {
+        let transform = content.replace(/\[(.*?)\]/g, "$1").replace(/÷/g, "/");
+        return `eval("${transform}")`;
+    });
+
+    // E. CORE .SOL SYNTAX
+    code = code.replace(/create\s+(\w+)(?!\s*=)/ig, "let $1;"); 
+    code = code.replace(/create\s+(\w+)\s*=\s*/ig, "let $1 = ");
+    code = code.replace(/set\s+(\w+)\s*=\s*/ig, "$1 = ");
+    code = code.replace(/set function\s+(\w+)/ig, "$1 = async function()");
+    code = code.replace(/create function\s+(\w+)/ig, "let $1 = async function()");
+    code = code.replace(/loop\s*\(([\s\S]*)\)/g, "while(true){ $1 }");
+    code = code.replace(/execute\s*\((.*?)\)/ig, "await $1()");
+    code = code.replace(/(?<!a)wait\s*\(/g, "await wait(");
+    
+    // F. CONSOLE LOGIC
+    code = code.replace(/wait\s*\(\s*checkconsole\s*\)/ig, "await new Promise(r => { consoleResolver = r; })");
+    code = code.replace(/(?<!await new Promise\(r => { consoleResolver = r; }\s*)\bcheckconsole\b/ig, "switchTab('console');");
+
+    const helpers = "const rng = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;";
+    const finalCode = `${helpers}\n${code}`;
+
+    try {
+        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+        await new AsyncFunction(finalCode)();
+    } catch (err) {
+        let msg = err.message;
+        if (msg.includes("is not defined")) msg = `Variavel inexistente: ${msg.split(' ')[0]}`;
+        log("ERR: " + msg, "#f44336");
+    }
+}
+
+// --- 4. TERMINAL (SOLTUX) COMMANDS ---
+
+soltuxInput.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+        const val = soltuxInput.value.trim();
+        const [cmd, arg] = val.split(' ');
+        soltuxInput.value = "";
+        terminalPrint(`E:\\> ${val}`, "#fff");
+
+        switch(cmd.toLowerCase()) {
+            case "/getlib":
+                if(arg) await importService(arg);
+                else terminalPrint("[ERR] Uso: /getlib Nome", "#f44336");
+                break;
+            case "/clear":
+                soltuxDisplay.innerHTML = "";
+                break;
+            case "/help":
+                terminalPrint("AVAILABLE: /getlib, /clear, /helpsintax", "#ffeb3b");
+                break;
+            case "/helpsintax":
+                terminalPrint("--- .SOL SYNTAX ---", "#00ffff");
+                terminalPrint("postfire('path', var) | getfire('path') -> var", "#fff");
+                terminalPrint("math([x] ÷ 2) | rng(1, 5)", "#fff");
+                break;
+            default:
+                terminalPrint(`'${cmd}' not recognized.`, "#f44336");
+        }
+    }
+});
+
+// --- 5. INITIALIZATION ---
 editor.addEventListener('input', updateEditor);
-terminalPrint("version: beta", "#bbb");
+terminalPrint("version: beta", "#lll");
 terminalPrint("my email: gn375294@gmail.com", "#00ffff");
-terminalPrint("SOLTUX", "#fff");
+terminalPrint("SOLTUX OS", "#fff");
