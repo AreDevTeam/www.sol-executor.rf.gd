@@ -133,6 +133,16 @@ async function runSol() {
     code = code.replace(/wait\s*\(\s*checkconsole\s*\)/ig, "await new Promise(r => { consoleResolver = r; })");
     code = code.replace(/(?<!await new Promise\(r => { consoleResolver = r; }\s*)\bcheckconsole\b/ig, "switchTab('console');");
 
+    // --- TEMPO NATIVO (TIME VARIABLES) ---
+
+// Traduz as palavras soltas para o JavaScript nativo de tempo
+code = code.replace(/\bhour\b/ig, "(new Date().getHours())");
+code = code.replace(/\bminutes\b/ig, "(new Date().getMinutes())");
+code = code.replace(/\bseconds\b/ig, "(new Date().getSeconds())");
+code = code.replace(/\bday\b/ig, "(new Date().getDate())");
+code = code.replace(/\bmonth\b/ig, "(new Date().getMonth() + 1)"); // JS conta mês de 0 a 11
+code = code.replace(/\byear\b/ig, "(new Date().getFullYear())");
+    
     const helpers = "const rng = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;";
     const finalCode = `${helpers}\n${code}`;
 
