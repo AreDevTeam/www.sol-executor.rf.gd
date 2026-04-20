@@ -323,15 +323,27 @@ async function runSol() {
     code = code.replace(/set\s+(\w+)\s*=\s*/ig, "$1 = ");
     code = code.replace(/delete\s+(\w+)/ig, "$1 = undefined;");
 
-    code = code.replace(/create\s+function\s+/ig, "create_func_");
-    code = code.replace(/create_func_(\w+)\s*\((.*?)\)/ig, "let $1 = async function($2) {");
-    code = code.replace(/create_func_(\w+)(?!\s*\()/ig, "let $1 = async function() {");
-    code = code.replace(/set\s+function/ig, "};");
+    // --- G. CORE BLOCK LOGIC (UNIVERSAL BREAK SYSTEM) ---
 
-    code = code.replace(/loop\s*\(([\s\S]*?)\)/g, "while(true){ $1 }");
+// 1. Abertura de Funções (Create cria, Set reescreve)
+code = code.replace(/create\s+function\s+(\w+)/ig, "let $1 = async function() {");
+code = code.replace(/set\s+function\s+(\w+)/ig, "$1 = async function() {");
+
+// 2. Condicionais (Fit e Elcio)
+// Agora eles abrem a chave, mas quem fecha é o break lá embaixo
+code = code.replace(/\bfit\s*\((.*?)\)/ig, "if ($1) {");
+code = code.replace(/\bifnot\b|\belcio\b/ig, "} else {");
+
+// 3. O FECHAMENTO UNIVERSAL (O Coração do SOL)
+// O 'break' agora fecha QUALQUER bloco: function, if, else ou loop.
+code = code.replace(/\bbreak\b|\bquebrar\b/ig, "}"); 
+
+// 4. Loops (Simplificado para usar o fechamento universal)
+code = code.replace(/\bloop\b/ig, "while(true) {");
+
     code = code.replace(/repeat\s+(\d+)\s+times\s*{/ig, "for(let __i=0; __i<$1; __i++){");
     code = code.replace(/foreach\s+(\w+)\s+in\s+(\w+)\s*{/ig, "for(let $1 of $2){");
-    code = code.replace(/break\s+loop/ig, "break");
+    code = code.replace(/\bbreak\b/ig, "}");
     code = code.replace(/continue\s+loop/ig, "continue");
     
     code = code.replace(/execute\s*\((.*?)\)/ig, "await $1()");
