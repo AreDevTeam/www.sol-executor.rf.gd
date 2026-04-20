@@ -581,7 +581,7 @@ soltuxInput.addEventListener('keydown', async (e) => {
 
             case "/ver":
             case "/version":
-                terminalPrint("SOL Executor v2.0.0 Enhanced Edition", "#00ffff");
+                terminalPrint("SOL Executor v1.7.5 Enhanced Edition", "#00ffff");
                 terminalPrint("Developer: AreDev", "#00ffff");
                 break;
 
@@ -680,7 +680,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 terminalPrint("═══════════════════════════════════════", "#00ffff");
-terminalPrint("  SOL EXECUTOR v2.0.0 Enhanced Edition", "#fff");
+terminalPrint("  SOL EXECUTOR v1.7.5 Enhanced Edition", "#fff");
 terminalPrint("  Developer: AreDev", "#00bcd4");
 terminalPrint("═══════════════════════════════════════", "#00ffff");
 terminalPrint("Type /help for commands | /helpsyntax for syntax", "#bbb");
