@@ -251,7 +251,7 @@ async function runSol() {
     const importRegex = /importService\s*\(\s*["'](.*?)["']\s*\)/ig;
     const importMatches = [...code.matchAll(importRegex)];
     for (const match of importMatches) await importService(match[1]);
-
+    code = code.replace(/^\s*clear\s*$/gim, "logOutput.innerHTML = '';");    
     // ── 3. Firebase ──────────────────────────────────────────
     code = code.replace(/setfirebase\s*\((.*?)\)/ig, "WebSol.setfirebase($1)");
     code = code.replace(/postfire\s*\((.*?)\s*,\s*(.*?)\)/ig, "await WebSol.postfire($1, $2)");
