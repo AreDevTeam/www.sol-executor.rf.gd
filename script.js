@@ -1,7 +1,7 @@
 /**
  * SOL EXECUTOR - OFFICIAL CORE
  * Developer: E (AreDev)
- * Version: 1.5.0-SECURE
+ * Version: 1.6.0-SECURE
  */
 
 // --- CONFIGURATION ---
@@ -56,7 +56,7 @@ function terminalPrint(message, color) {
 // --- 2. MODULAR INJECTION (THE BRIDGE) ---
 
 async function importService(name) {
-    if (document.getElementById(`lib-${name}`)) return; // Prevent double injection
+    if (document.getElementById(`lib-${name}`)) return; 
 
     lastTerminalLine = document.createElement('div');
     lastTerminalLine.style.color = "#00ffff";
@@ -64,13 +64,13 @@ async function importService(name) {
 
     // Visual Loading Effect
     for (let i = 0; i <= 100; i += 25) {
-        lastTerminalLine.innerText = `[${name}] Carregando: ${i}%`;
+        lastTerminalLine.innerText = `[${name}] Loading: ${i}%`;
         await new Promise(r => setTimeout(r, 60));
     }
 
     try {
         const response = await fetch(`${PROXY_URL}${name}`);
-        if (!response.ok) throw new Error("Acesso negado pela Proxy.");
+        if (!response.ok) throw new Error("Proxy access denied.");
 
         const code = await response.text();
         const scriptTag = document.createElement('script');
@@ -79,9 +79,9 @@ async function importService(name) {
         document.head.appendChild(scriptTag);
         
         lastTerminalLine.remove();
-        terminalPrint(`[OK] Biblioteca '${name}' injetada com sucesso.`, "#4caf50");
+        terminalPrint(`[OK] Service '${name}' injected successfully.`, "#4caf50");
     } catch (err) {
-        lastTerminalLine.innerText = `[FAIL] Erro ao carregar ${name}.`;
+        lastTerminalLine.innerText = `[FAIL] Error loading ${name}.`;
         lastTerminalLine.style.color = "#f44336";
     }
 }
@@ -105,9 +105,10 @@ async function runSol() {
         await importService(match[1]);
     }
 
-    // C. FIREBASE & NETWORK CUSTOM SYNTAX (WebSol Dependent)
+    // C. FIREBASE & NETWORK CUSTOM SYNTAX
     code = code.replace(/setfirebase\s*\((.*?)\)/ig, "WebSol.setfirebase($1)");
     code = code.replace(/postfire\s*\((.*?)\s*,\s*(.*?)\)/ig, "await WebSol.postfire($1, $2)");
+    code = code.replace(/postfire\s*\((['"][\w\s/]+['"])\)(?!\s*,)/ig, "await WebSol.postfire($1, true)");
     code = code.replace(/getfire\s*\((.*?)\)\s*->\s*(\w+)/ig, "let $2 = await WebSol.getfire($1)");
     code = code.replace(/getlistfire\s*\((.*?)\)\s*->\s*(\w+)/ig, "let $2 = await WebSol.getlistfire($1)");
     code = code.replace(/postlink\s*\((.*?)\s*,\s*(.*?)\)\s*->\s*(\w+)/ig, "let $3 = await WebSol.postlink($1, $2)");
@@ -119,7 +120,15 @@ async function runSol() {
         return `eval("${transform}")`;
     });
 
-    // E. CORE .SOL SYNTAX
+    // E. NATIVE TIME VARIABLES
+    code = code.replace(/\bhour\b/ig, "(new Date().getHours())");
+    code = code.replace(/\bminutes\b/ig, "(new Date().getMinutes())");
+    code = code.replace(/\bseconds\b/ig, "(new Date().getSeconds())");
+    code = code.replace(/\bday\b/ig, "(new Date().getDate())");
+    code = code.replace(/\bmonth\b/ig, "(new Date().getMonth() + 1)");
+    code = code.replace(/\byear\b/ig, "(new Date().getFullYear())");
+
+    // F. CORE .SOL SYNTAX
     code = code.replace(/create\s+(\w+)(?!\s*=)/ig, "let $1;"); 
     code = code.replace(/create\s+(\w+)\s*=\s*/ig, "let $1 = ");
     code = code.replace(/set\s+(\w+)\s*=\s*/ig, "$1 = ");
@@ -129,20 +138,10 @@ async function runSol() {
     code = code.replace(/execute\s*\((.*?)\)/ig, "await $1()");
     code = code.replace(/(?<!a)wait\s*\(/g, "await wait(");
     
-    // F. CONSOLE LOGIC
+    // G. CONSOLE LOGIC
     code = code.replace(/wait\s*\(\s*checkconsole\s*\)/ig, "await new Promise(r => { consoleResolver = r; })");
     code = code.replace(/(?<!await new Promise\(r => { consoleResolver = r; }\s*)\bcheckconsole\b/ig, "switchTab('console');");
 
-    // --- TEMPO NATIVO (TIME VARIABLES) ---
-
-// Traduz as palavras soltas para o JavaScript nativo de tempo
-code = code.replace(/\bhour\b/ig, "(new Date().getHours())");
-code = code.replace(/\bminutes\b/ig, "(new Date().getMinutes())");
-code = code.replace(/\bseconds\b/ig, "(new Date().getSeconds())");
-code = code.replace(/\bday\b/ig, "(new Date().getDate())");
-code = code.replace(/\bmonth\b/ig, "(new Date().getMonth() + 1)"); // JS conta mês de 0 a 11
-code = code.replace(/\byear\b/ig, "(new Date().getFullYear())");
-    
     const helpers = "const rng = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;";
     const finalCode = `${helpers}\n${code}`;
 
@@ -151,8 +150,8 @@ code = code.replace(/\byear\b/ig, "(new Date().getFullYear())");
         await new AsyncFunction(finalCode)();
     } catch (err) {
         let msg = err.message;
-        if (msg.includes("is not defined")) msg = `Variavel inexistente: ${msg.split(' ')[0]}`;
-        log("ERR: " + msg, "#f44336");
+        if (msg.includes("is not defined")) msg = `Undefined variable: ${msg.split(' ')[0]}`;
+        log("RUNTIME ERR: " + msg, "#f44336");
     }
 }
 
@@ -168,7 +167,7 @@ soltuxInput.addEventListener('keydown', async (e) => {
         switch(cmd.toLowerCase()) {
             case "/getlib":
                 if(arg) await importService(arg);
-                else terminalPrint("[ERR] Uso: /getlib Nome", "#f44336");
+                else terminalPrint("[ERR] Usage: /getlib ServiceName", "#f44336");
                 break;
             case "/clear":
                 soltuxDisplay.innerHTML = "";
@@ -179,16 +178,17 @@ soltuxInput.addEventListener('keydown', async (e) => {
             case "/helpsintax":
                 terminalPrint("--- .SOL SYNTAX ---", "#00ffff");
                 terminalPrint("postfire('path', var) | getfire('path') -> var", "#fff");
-                terminalPrint("math([x] ÷ 2) | rng(1, 5)", "#fff");
+                terminalPrint("math([x] ÷ 2) | rng(1, 100)", "#fff");
+                terminalPrint("hour, minutes, seconds, day, month, year", "#fff");
                 break;
             default:
-                terminalPrint(`'${cmd}' not recognized.`, "#f44336");
+                terminalPrint(`'${cmd}' is not recognized as an internal command.`, "#f44336");
         }
     }
 });
 
-// --- 5. INITIALIZATION ---
+// --- 5. INITIALIZATION (ORIGINAL PRINTS) ---
 editor.addEventListener('input', updateEditor);
-terminalPrint("version: beta", "#lll");
+terminalPrint("version: beta 1.6.0", "#lll");
 terminalPrint("my email: gn375294@gmail.com", "#00ffff");
 terminalPrint("SOLTUX OS", "#fff");
