@@ -136,6 +136,7 @@ async function runSol() {
     code = code.replace(/loop\s*\(([\s\S]*)\)/g, "while(true){ $1 }");
     code = code.replace(/execute\s*\((.*?)\)/ig, "await $1()");
     code = code.replace(/(?<!a)wait\s*\(/g, "await wait(");
+    code = code.replace(/create function\s+(\w+)/ig, "let $1 = async function()");
     
     // G. CONSOLE LOGIC
     code = code.replace(/wait\s*\(\s*checkconsole\s*\)/ig, "await new Promise(r => { consoleResolver = r; })");
