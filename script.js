@@ -284,11 +284,11 @@ async function runSol() {
     //
     code = code.replace(
         /\bcreate\s+function\s+(\w+)\s*\(\s*(.*?)\s*\)/ig,
-        "let $1 = async function($2) {"
+        "var $1 = async function($2) {"
     );
     code = code.replace(
         /\bcreate\s+function\s+(\w+)/ig,
-        "let $1 = async function() {"
+        "var $1 = async function() {"
     );
     code = code.replace(
         /\bset\s+function\s+(\w+)\s*\(\s*(.*?)\s*\)/ig,
@@ -300,51 +300,83 @@ async function runSol() {
     );
 
     // ── 7. VARIÁVEIS ─────────────────────────────────────────
-    //   create x = valor  →  let x = valor
-    //   create x          →  let x
+    //
+    //  BUG DE ESCOPO CORRIGIDO:
+    //  "let" tem escopo de bloco em JS — uma variável declarada
+    //  dentro de um if/loop some ao sair do bloco.
+    //  Em SOL, "create" deve ter escopo de função (como var),
+    //  para que a variável exista em todo o script do usuário.
+    //
+    //   create x = valor  →  var x = valor
+    //   create x          →  var x
     //   set x = valor     →  x = valor
     //   delete x          →  x = undefined
     //
-    code = code.replace(/\bcreate\s+(\w+)\s*=\s*/ig, "let $1 = ");
-    code = code.replace(/\bcreate\s+(\w+)\s*$/img,   "let $1");
+    code = code.replace(/\bcreate\s+(\w+)\s*=\s*/ig, "var $1 = ");
+    code = code.replace(/\bcreate\s+(\w+)\s*$/img,   "var $1");
     code = code.replace(/\bset\s+(\w+)\s*=\s*/ig,    "$1 = ");
     code = code.replace(/\bdelete\s+(\w+)/ig,         "$1 = undefined");
 
     // ── 8. CONDICIONAIS ──────────────────────────────────────
     //
-    //  Sintaxe SOL:
-    //    if VAR = VAL then         →  if (VAR === VAL) {
-    //    if VAR > VAL then         →  if (VAR > VAL) {
-    //    if not VAR = VAL then     →  if (VAR !== VAL) {
+    //  Formas aceitas (resiliente a parênteses extras do usuário):
+    //
+    //    if x = 10 then            →  if (x === 10) {
+    //    if (x = 10) then          →  if (x === 10) {   ← parênteses extras OK
+    //    if x > 10 then            →  if (x > 10) {
+    //    if not x = 10 then        →  if (x !== 10) {
+    //    if not (x = 10) then      →  if (x !== 10) {   ← parênteses extras OK
     //    elcio                     →  } else {
     //
-    //  O bloco é fechado pelo "break" universal (passo 11).
+    //  Regra: strip de parênteses externos antes de montar o JS.
     //  Operadores:  =  →  ===  |  !=  →  !==  |  > < >= <=  mantidos
     //
 
+    // Mapeia operador SOL → JS
     function mapOp(op) {
-        if (op === "=")  return "===";
-        if (op === "!=") return "!==";
-        return op;
+        if (op.trim() === "=")  return "===";
+        if (op.trim() === "!=") return "!==";
+        return op.trim();
     }
 
-    // "if not VAR OP VAL then"
+    // Remove parênteses externos de uma string, se existirem
+    function stripOuterParens(s) {
+        s = s.trim();
+        if (s.startsWith("(") && s.endsWith(")")) return s.slice(1, -1).trim();
+        return s;
+    }
+
+    // "if not ..." — com ou sem parênteses externos na condição
     code = code.replace(
-        /\bif\s+not\s+(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+?)\s+then\b/ig,
-        (_, v, op, val) => `if (${v} ${mapOp(op) === "===" ? "!==" : "!(" + v + " " + mapOp(op) + " " + val.trim() + ")"}) {`
+        /\bif\s+not\s+(.+?)\s+then\b/ig,
+        (_, raw) => {
+            // extrai "VAR OP VAL" removendo parênteses extras
+            const inner = stripOuterParens(raw);
+            // tenta capturar padrão "VAR OP VAL"
+            const m = inner.match(/^(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+)$/i);
+            if (m) {
+                const jsOp = mapOp(m[2]) === "===" ? "!==" : mapOp(m[2]) === "!==" ? "===" : `/* not */ ${mapOp(m[2])}`;
+                // para = e != inverte direto; para outros envolve em !(...)
+                if (m[2].trim() === "=" || m[2].trim() === "!=") {
+                    return `if (${m[1]} ${mapOp(m[2]) === "===" ? "!==" : "==="} ${m[3].trim()}) {`;
+                }
+                return `if (!(${m[1]} ${mapOp(m[2])} ${m[3].trim()})) {`;
+            }
+            // fallback: envolve a condição em !(...)
+            return `if (!(${inner})) {`;
+        }
     );
 
-    // simplifica: "if not VAR = VAL then" → "if (VAR !== VAL) {"
-    // reprocessa mais limpo linha a linha via função
+    // "if ..." — com ou sem parênteses externos na condição
     code = code.replace(
-        /\bif\s+not\s+(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+?)\s+then\b/ig,
-        (_, v, op, val) => `if (${v} ${op === "=" ? "!==" : "!"+ mapOp(op)} ${val.trim()}) {`
-    );
-
-    // "if VAR OP VAL then"
-    code = code.replace(
-        /\bif\s+(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+?)\s+then\b/ig,
-        (_, v, op, val) => `if (${v} ${mapOp(op)} ${val.trim()}) {`
+        /\bif\s+(.+?)\s+then\b/ig,
+        (_, raw) => {
+            const inner = stripOuterParens(raw);
+            const m = inner.match(/^(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+)$/i);
+            if (m) return `if (${m[1]} ${mapOp(m[2])} ${m[3].trim()}) {`;
+            // fallback: usa a condição como está (ex: expressão JS pura)
+            return `if (${inner}) {`;
+        }
     );
 
     // elcio → } else {
@@ -352,19 +384,21 @@ async function runSol() {
 
     // ── 9. LOOPS ─────────────────────────────────────────────
     //
-    //  loop              →  while(true) {
-    //  repeat N times    →  for(let __i=0; __i<N; __i++) {
-    //  foreach x in arr  →  for(let x of arr) {
-    //  stoploop          →  break   (JS nativo — sai do loop)
-    //  nextloop          →  continue (JS nativo)
+    //  BUG CORRIGIDO: loop() com parênteses gerava "while(true) {)"
+    //  Solução: a regex consome os parênteses opcionais \s*\(?\s*\)?
     //
-    //  O bloco é fechado pelo "break" universal (passo 11).
+    //  loop           →  while(true) {
+    //  loop()         →  while(true) {   ← parênteses ignorados
+    //  repeat N times →  for(let __i=0; __i<N; __i++) {
+    //  foreach x in y →  for(let x of y) {
+    //  stoploop       →  break  (JS nativo, sai do loop)
+    //  nextloop       →  continue (JS nativo)
     //
-    code = code.replace(/\bloop\b/ig,                           "while(true) {");
-    code = code.replace(/\brepeat\s+(\d+)\s+times\b/ig,         "for(let __i=0; __i<$1; __i++) {");
-    code = code.replace(/\bforeach\s+(\w+)\s+in\s+(\w+)\b/ig,   "for(let $1 of $2) {");
-    code = code.replace(/\bstoploop\b/ig,                       "__STOPLOOP__");
-    code = code.replace(/\bnextloop\b/ig,                       "__NEXTLOOP__");
+    code = code.replace(/\bloop\s*\(?\s*\)?\s*(?=\s|$)/ig,      "while(true) {");
+    code = code.replace(/\brepeat\s+(\d+)\s+times\b/ig,          "for(let __i=0; __i<$1; __i++) {");
+    code = code.replace(/\bforeach\s+(\w+)\s+in\s+(\w+)\b/ig,    "for(let $1 of $2) {");
+    code = code.replace(/\bstoploop\b/ig,                        "__STOPLOOP__");
+    code = code.replace(/\bnextloop\b/ig,                        "__NEXTLOOP__");
 
     // ── 10. execute() ────────────────────────────────────────
     //
@@ -646,7 +680,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 terminalPrint("═══════════════════════════════════════", "#00ffff");
-terminalPrint("  SOL EXECUTOR v1.7.4 Enhanced Edition", "#fff");
+terminalPrint("  SOL EXECUTOR v2.0.0 Enhanced Edition", "#fff");
 terminalPrint("  Developer: AreDev", "#00bcd4");
 terminalPrint("═══════════════════════════════════════", "#00ffff");
 terminalPrint("Type /help for commands | /helpsyntax for syntax", "#bbb");
