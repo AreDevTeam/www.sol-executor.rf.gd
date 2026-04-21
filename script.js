@@ -5,6 +5,12 @@ const CONFIG = {
     theme: 'dark'
 };
 
+// ═══════════════════════════════════════════════════════════════
+//  SISTEMA DE CONTROLE DE EXECUÇÃO
+// ═══════════════════════════════════════════════════════════════
+let currentExecutionId = 0;
+let activeExecutionId = null;
+
 let consoleResolver = null;
 let lastTerminalLine = null;
 let executionContext = {};
@@ -17,6 +23,213 @@ const lineNumbers = document.getElementById('line-numbers');
 const logOutput = document.getElementById('log-output');
 const soltuxDisplay = document.getElementById('soltux-display');
 const soltuxInput = document.getElementById('soltux-input');
+
+// ═══════════════════════════════════════════════════════════════
+//  SISTEMA DE AUTO-CORREÇÃO E SUGESTÕES
+// ═══════════════════════════════════════════════════════════════
+const SOL_KEYWORDS = [
+    'create', 'set', 'execute', 'break', 'if', 'then', 'else', 
+    'loop', 'repeat', 'foreach', 'importService', 'stoploop', 
+    'nextloop', 'function', 'return', 'delete', 'times', 'in',
+    'not', 'to', 'of', 'at', 'push', 'remove', 'from'
+];
+
+const SOL_FUNCTIONS = [
+    'log', 'print', 'error', 'warn', 'success', 'wait', 'clear',
+    'checkconsole', 'rng', 'random', 'math', 'input', 'alert',
+    'array', 'object', 'length', 'shuffle', 'pick', 'range'
+];
+
+const COMMON_MISTAKES = {
+    '==': '=',
+    '===': '=',
+    '!=': 'not ... =',
+    '!==': 'not ... =',
+    'var': 'create',
+    'let': 'create',
+    'const': 'create',
+    'function': 'create function',
+    'for': 'repeat ... times or foreach',
+    'while': 'loop',
+    'console.log': 'log',
+    'print': 'log'
+};
+
+// Calcula distância de Levenshtein para encontrar palavras similares
+function levenshteinDistance(a, b) {
+    const matrix = [];
+    
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+    
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+    
+    return matrix[b.length][a.length];
+}
+
+// Encontra a keyword mais próxima
+function findClosestKeyword(word) {
+    const allWords = [...SOL_KEYWORDS, ...SOL_FUNCTIONS];
+    let closest = null;
+    let minDistance = Infinity;
+    
+    for (const keyword of allWords) {
+        const distance = levenshteinDistance(word.toLowerCase(), keyword.toLowerCase());
+        if (distance < minDistance && distance <= 3) {
+            minDistance = distance;
+            closest = keyword;
+        }
+    }
+    
+    return { keyword: closest, distance: minDistance };
+}
+
+// Analisa o código e gera sugestões
+function analyzeCodeForSuggestions(code) {
+    const lines = code.split('\n');
+    const suggestions = [];
+    const blockStack = []; // Rastreia blocos abertos
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        const lineNum = i + 1;
+        
+        // Ignora comentários e linhas vazias
+        if (!line || line.startsWith('--') || line.startsWith('//')) continue;
+        
+        // Detecta blocos que abrem
+        if (
+            /\bcreate\s+function\b/i.test(line) ||
+            /\bset\s+function\b/i.test(line) ||
+            /\bif\b.*\bthen\b/i.test(line) ||
+            /\belse\b/i.test(line) ||
+            /\bloop\b/i.test(line) ||
+            /\brepeat\b.*\btimes\b/i.test(line) ||
+            /\bforeach\b/i.test(line)
+        ) {
+            blockStack.push({ type: 'block', line: lineNum });
+        }
+        
+        // Detecta fechamento de bloco
+        if (/^\s*\bbreak\b\s*$/i.test(line)) {
+            if (blockStack.length > 0) {
+                blockStack.pop();
+            }
+        }
+        
+        // Verifica uso de operadores JS em vez de SOL
+        if (/\b==\b/.test(line) || /\b===\b/.test(line)) {
+            suggestions.push({
+                line: lineNum,
+                type: 'operator',
+                message: `Na SOL, use '=' em vez de '${line.includes('===') ? '===' : '=='}' para comparação`
+            });
+        }
+        
+        if (/\b!=\b/.test(line) || /\b!==\b/.test(line)) {
+            suggestions.push({
+                line: lineNum,
+                type: 'operator',
+                message: `Na SOL, use 'if not x = y then' em vez de '${line.includes('!==') ? '!==' : '!='}'`
+            });
+        }
+        
+        // Detecta palavras-chave com erros de digitação
+        const words = line.match(/\b[a-zA-Z_]\w*\b/g) || [];
+        for (const word of words) {
+            // Pula números, strings e palavras muito curtas
+            if (word.length < 3 || /^\d+$/.test(word)) continue;
+            
+            // Verifica se não é uma keyword/função conhecida
+            const isKnown = [...SOL_KEYWORDS, ...SOL_FUNCTIONS].some(
+                kw => kw.toLowerCase() === word.toLowerCase()
+            );
+            
+            if (!isKnown) {
+                const { keyword, distance } = findClosestKeyword(word);
+                if (keyword && distance <= 2) {
+                    suggestions.push({
+                        line: lineNum,
+                        type: 'typo',
+                        message: `'${word}' não reconhecido. Você quis dizer '${keyword}'?`
+                    });
+                }
+            }
+        }
+        
+        // Detecta uso de JS puro
+        if (/\bvar\b|\blet\b|\bconst\b/.test(line)) {
+            suggestions.push({
+                line: lineNum,
+                type: 'syntax',
+                message: "Na SOL, use 'create' em vez de 'var/let/const'"
+            });
+        }
+        
+        if (/\bfunction\s+\w+/.test(line) && !/\bcreate\s+function\b/.test(line)) {
+            suggestions.push({
+                line: lineNum,
+                type: 'syntax',
+                message: "Na SOL, use 'create function Nome' em vez de 'function Nome'"
+            });
+        }
+        
+        if (/\bconsole\.log\b/.test(line)) {
+            suggestions.push({
+                line: lineNum,
+                type: 'syntax',
+                message: "Na SOL, use 'log()' em vez de 'console.log()'"
+            });
+        }
+    }
+    
+    // Verifica blocos não fechados
+    if (blockStack.length > 0) {
+        const unclosed = blockStack[blockStack.length - 1];
+        suggestions.push({
+            line: unclosed.line,
+            type: 'block',
+            message: `Bloco aberto na linha ${unclosed.line} não foi fechado com 'break'`
+        });
+    }
+    
+    return suggestions;
+}
+
+// Mostra sugestões no log
+function showSuggestions(suggestions) {
+    if (suggestions.length === 0) return;
+    
+    log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#ffeb3b");
+    log("💡 SUGESTÕES DE CORREÇÃO:", "#ffeb3b");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", "#ffeb3b");
+    
+    for (const suggestion of suggestions) {
+        const icon = suggestion.type === 'typo' ? '📝' : 
+                     suggestion.type === 'operator' ? '⚠️' : 
+                     suggestion.type === 'block' ? '🔧' : '💬';
+        log(`${icon} Linha ${suggestion.line}: ${suggestion.message}`, "#ffeb3b");
+    }
+    
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n", "#ffeb3b");
+}
 
 class SolRuntime {
     constructor() {
@@ -220,17 +433,17 @@ async function importService(name) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  TRANSPILADOR SOL → JAVASCRIPT
-//
-//  REGRAS CENTRAIS:
-//   • break (sozinho na linha) = "}"  — fecha QUALQUER bloco
-//   • Blocos abrem com "{" automaticamente nas keywords
-//   • O usuário NÃO escreve { } — o transpilador insere
-//   • stoploop = break nativo JS  (sai do loop sem fechar bloco)
-//   • nextloop = continue nativo JS
-// ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  TRANSPILADOR SOL → JAVASCRIPT COM CONTROLE DE EXECUÇÃO
+// ═══════════════════════════════════════════════════════════════
 async function runSol() {
+    // Incrementa o ID de execução e aborta execuções anteriores
+    currentExecutionId++;
+    const thisExecutionId = currentExecutionId;
+    activeExecutionId = thisExecutionId;
+    
+    log(`🆔 Execution ID: ${thisExecutionId}`, "#9c27b0");
+    
     let code = editor.innerText.trim();
 
     if (!code) {
@@ -241,6 +454,12 @@ async function runSol() {
     switchTab('console');
     logOutput.innerHTML = "";
     log("🚀 Execution started...", "#2196f3");
+    
+    // Analisa código e gera sugestões ANTES da execução
+    const suggestions = analyzeCodeForSuggestions(code);
+    if (suggestions.length > 0) {
+        showSuggestions(suggestions);
+    }
 
     // ── 1. Remove comentários (suporta -- e //) ──────────────
     code = code.replace(/--.*$/gm, "");
@@ -252,6 +471,7 @@ async function runSol() {
     const importMatches = [...code.matchAll(importRegex)];
     for (const match of importMatches) await importService(match[1]);
     code = code.replace(/^\s*clear\s*$/gim, "logOutput.innerHTML = '';");    
+    
     // ── 3. Firebase ──────────────────────────────────────────
     code = code.replace(/setfirebase\s*\((.*?)\)/ig, "WebSol.setfirebase($1)");
     code = code.replace(/postfire\s*\((.*?)\s*,\s*(.*?)\)/ig, "await WebSol.postfire($1, $2)");
@@ -274,14 +494,6 @@ async function runSol() {
     code = code.replace(/\btimestamp\b/ig, "(Date.now())");
 
     // ── 6. FUNÇÕES ───────────────────────────────────────────
-    // DEVE VIR ANTES das regex de create/set de variáveis.
-    // O corpo da função é fechado pelo "break" (passo 11).
-    //
-    //   create function Nome(a, b)  →  let Nome = async function(a, b) {
-    //   create function Nome        →  let Nome = async function() {
-    //   set function Nome(a, b)     →  Nome = async function(a, b) {
-    //   set function Nome           →  Nome = async function() {
-    //
     code = code.replace(
         /\bcreate\s+function\s+(\w+)\s*\(\s*(.*?)\s*\)/ig,
         "var $1 = async function($2) {"
@@ -300,123 +512,83 @@ async function runSol() {
     );
 
     // ── 7. VARIÁVEIS ─────────────────────────────────────────
-    //
-    //  BUG DE ESCOPO CORRIGIDO:
-    //  "let" tem escopo de bloco em JS — uma variável declarada
-    //  dentro de um if/loop some ao sair do bloco.
-    //  Em SOL, "create" deve ter escopo de função (como var),
-    //  para que a variável exista em todo o script do usuário.
-    //
-    //   create x = valor  →  var x = valor
-    //   create x          →  var x
-    //   set x = valor     →  x = valor
-    //   delete x          →  x = undefined
-    //
     code = code.replace(/\bcreate\s+(\w+)\s*=\s*/ig, "var $1 = ");
     code = code.replace(/\bcreate\s+(\w+)\s*$/img,   "var $1");
     code = code.replace(/\bset\s+(\w+)\s*=\s*/ig,    "$1 = ");
     code = code.replace(/\bdelete\s+(\w+)/ig,         "$1 = undefined");
 
     // ── 8. CONDICIONAIS ──────────────────────────────────────
-    //
-    //  Formas aceitas (resiliente a parênteses extras do usuário):
-    //
-    //    if x = 10 then            →  if (x === 10) {
-    //    if (x = 10) then          →  if (x === 10) {   ← parênteses extras OK
-    //    if x > 10 then            →  if (x > 10) {
-    //    if not x = 10 then        →  if (x !== 10) {
-    //    if not (x = 10) then      →  if (x !== 10) {   ← parênteses extras OK
-    //    elcio                     →  } else {
-    //
-    //  Regra: strip de parênteses externos antes de montar o JS.
-    //  Operadores:  =  →  ===  |  !=  →  !==  |  > < >= <=  mantidos
-    //
-
-    // Mapeia operador SOL → JS
     function mapOp(op) {
         if (op.trim() === "=")  return "===";
         if (op.trim() === "!=") return "!==";
         return op.trim();
     }
 
-    // Remove parênteses externos de uma string, se existirem
     function stripOuterParens(s) {
         s = s.trim();
         if (s.startsWith("(") && s.endsWith(")")) return s.slice(1, -1).trim();
         return s;
     }
 
-    // "if not ..." — com ou sem parênteses externos na condição
     code = code.replace(
         /\bif\s+not\s+(.+?)\s+then\b/ig,
         (_, raw) => {
-            // extrai "VAR OP VAL" removendo parênteses extras
             const inner = stripOuterParens(raw);
-            // tenta capturar padrão "VAR OP VAL"
             const m = inner.match(/^(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+)$/i);
             if (m) {
                 const jsOp = mapOp(m[2]) === "===" ? "!==" : mapOp(m[2]) === "!==" ? "===" : `/* not */ ${mapOp(m[2])}`;
-                // para = e != inverte direto; para outros envolve em !(...)
                 if (m[2].trim() === "=" || m[2].trim() === "!=") {
                     return `if (${m[1]} ${mapOp(m[2]) === "===" ? "!==" : "==="} ${m[3].trim()}) {`;
                 }
                 return `if (!(${m[1]} ${mapOp(m[2])} ${m[3].trim()})) {`;
             }
-            // fallback: envolve a condição em !(...)
             return `if (!(${inner})) {`;
         }
     );
 
-    // "if ..." — com ou sem parênteses externos na condição
     code = code.replace(
         /\bif\s+(.+?)\s+then\b/ig,
         (_, raw) => {
             const inner = stripOuterParens(raw);
             const m = inner.match(/^(\w+)\s*(===|!==|>=|<=|>|<|!=|=)\s*(.+)$/i);
             if (m) return `if (${m[1]} ${mapOp(m[2])} ${m[3].trim()}) {`;
-            // fallback: usa a condição como está (ex: expressão JS pura)
             return `if (${inner}) {`;
         }
     );
 
-    // elcio → } else {
     code = code.replace(/\belse\b/ig, "} else {");
 
-    // ── 9. LOOPS ─────────────────────────────────────────────
-    //
-    //  BUG CORRIGIDO: loop() com parênteses gerava "while(true) {)"
-    //  Solução: a regex consome os parênteses opcionais \s*\(?\s*\)?
-    //
-    //  loop           →  while(true) {
-    //  loop()         →  while(true) {   ← parênteses ignorados
-    //  repeat N times →  for(let __i=0; __i<N; __i++) {
-    //  foreach x in y →  for(let x of y) {
-    //  stoploop       →  break  (JS nativo, sai do loop)
-    //  nextloop       →  continue (JS nativo)
-    //
-    code = code.replace(/\bloop\s*\(?\s*\)?\s*(?=\s|$)/ig,      "while(true) {");
-    code = code.replace(/\brepeat\s+(\d+)\s+times\b/ig,          "for(let __i=0; __i<$1; __i++) {");
-    code = code.replace(/\bforeach\s+(\w+)\s+in\s+(\w+)\b/ig,    "for(let $1 of $2) {");
-    code = code.replace(/\bstoploop\b/ig,                        "__STOPLOOP__");
-    code = code.replace(/\bnextloop\b/ig,                        "__NEXTLOOP__");
+    // ── 9. LOOPS COM VERIFICAÇÃO DE EXECUÇÃO ────────────────
+    // CRÍTICO: Injeta verificação de execução ativa em cada loop
+    
+    const executionCheck = `if(__execId !== ${thisExecutionId}) break;`;
+    
+    code = code.replace(
+        /\bloop\s*\(?\s*\)?\s*(?=\s|$)/ig,
+        `while(true) { ${executionCheck}`
+    );
+    
+    code = code.replace(
+        /\brepeat\s+(\d+)\s+times\b/ig,
+        `for(let __i=0; __i<$1; __i++) { ${executionCheck}`
+    );
+    
+    code = code.replace(
+        /\bforeach\s+(\w+)\s+in\s+(\w+)\b/ig,
+        `for(let $1 of $2) { ${executionCheck}`
+    );
+    
+    code = code.replace(/\bstoploop\b/ig, "__STOPLOOP__");
+    code = code.replace(/\bnextloop\b/ig, "__NEXTLOOP__");
 
     // ── 10. execute() ────────────────────────────────────────
-    //
-    //  execute(Nome('arg'))  →  await Nome('arg')
-    //  execute(Nome)         →  await Nome()
-    //
     code = code.replace(/\bexecute\s*\(\s*(\w+\s*\(.*?\))\s*\)/ig, "await $1");
     code = code.replace(/\bexecute\s*\(\s*(\w+)\s*\)/ig,            "await $1()");
 
     // ── 11. BREAK = FECHAMENTO UNIVERSAL ─────────────────────
-    //
-    //  "break" sozinho em uma linha  →  "}"
-    //  Fecha função, if, else, loop — qualquer bloco aberto.
-    //
     code = code.replace(/^\s*\bbreak\b\s*$/img, "}");
 
     // ── 12. Restaura stoploop / nextloop ─────────────────────
-    //  (guardados antes do break para não serem transformados em "}")
     code = code.replace(/__STOPLOOP__/g, "break");
     code = code.replace(/__NEXTLOOP__/g, "continue");
 
@@ -443,6 +615,7 @@ async function runSol() {
 
     // ── 17. Helpers injetados no contexto ────────────────────
     const helpers = `
+        const __execId = ${thisExecutionId};
         const rng     = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
         const sleep   = ms => new Promise(r => setTimeout(r, ms));
         const range   = (start, end) => Array.from({length: end - start + 1}, (_, i) => start + i);
@@ -461,15 +634,38 @@ async function runSol() {
         const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
         const startTime = Date.now();
         await new AsyncFunction(finalCode)();
-        const executionTime = Date.now() - startTime;
-        log(`✓ Execution completed in ${executionTime}ms`, "#4caf50");
+        
+        // Só mostra mensagem de conclusão se ainda for a execução ativa
+        if (thisExecutionId === activeExecutionId) {
+            const executionTime = Date.now() - startTime;
+            log(`✓ Execution completed in ${executionTime}ms`, "#4caf50");
+        } else {
+            log(`⚠️ Execution ${thisExecutionId} was aborted`, "#ff9800");
+        }
     } catch (err) {
-        log(`✗ RUNTIME ERROR: ${err.message}`, "#f44336");
-        // Mostra código transpilado no console do dev para debug
-        console.groupCollapsed("SOL transpiled code");
-        console.log(finalCode);
-        console.groupEnd();
-        console.error(err);
+        // Só mostra erro se ainda for a execução ativa
+        if (thisExecutionId === activeExecutionId) {
+            log(`✗ RUNTIME ERROR: ${err.message}`, "#f44336");
+            
+            // Tenta extrair número da linha do erro
+            const stackLines = err.stack.split('\n');
+            let lineInfo = '';
+            for (const line of stackLines) {
+                const match = line.match(/<anonymous>:(\d+):/);
+                if (match) {
+                    lineInfo = ` (próximo à linha ${Math.max(1, parseInt(match[1]) - helpers.split('\n').length)})`;
+                    break;
+                }
+            }
+            
+            log(`📍 Localização${lineInfo}`, "#ff9800");
+            
+            // Mostra código transpilado no console do dev para debug
+            console.groupCollapsed("SOL transpiled code");
+            console.log(finalCode);
+            console.groupEnd();
+            console.error(err);
+        }
     }
 }
 
@@ -581,8 +777,9 @@ soltuxInput.addEventListener('keydown', async (e) => {
 
             case "/ver":
             case "/version":
-                terminalPrint("SOL Executor v1.7.5 Enhanced Edition", "#00ffff");
+                terminalPrint("SOL Executor v1.8.6", "#00ffff");
                 terminalPrint("Developer: AreDev", "#00ffff");
+                terminalPrint("Features: Execution Control + Smart Suggestions", "#00bcd4");
                 break;
 
             case "/help":
@@ -599,6 +796,8 @@ soltuxInput.addEventListener('keydown', async (e) => {
                 terminalPrint("  /load          - Load code from storage", "#fff");
                 terminalPrint("  /debug on/off  - Toggle debug mode", "#fff");
                 terminalPrint("  /export        - Export project as ZIP", "#fff");
+                terminalPrint("  /check         - Check code for errors", "#fff");
+                terminalPrint("  /stop          - Stop current execution", "#fff");
                 terminalPrint("", "#fff");
                 terminalPrint("═══════════════════════════════════════", "#00ffff");
                 break;
@@ -629,6 +828,29 @@ soltuxInput.addEventListener('keydown', async (e) => {
 
             case "/export":
                 await exportProject();
+                break;
+
+            case "/check":
+                const code = editor.innerText.trim();
+                if (!code) {
+                    terminalPrint("No code to check.", "#ff9800");
+                } else {
+                    const suggestions = analyzeCodeForSuggestions(code);
+                    if (suggestions.length === 0) {
+                        terminalPrint("✓ No issues found!", "#4caf50");
+                    } else {
+                        terminalPrint(`Found ${suggestions.length} suggestion(s):`, "#ffeb3b");
+                        for (const s of suggestions) {
+                            terminalPrint(`  Line ${s.line}: ${s.message}`, "#fff");
+                        }
+                    }
+                }
+                break;
+
+            case "/stop":
+                currentExecutionId++;
+                activeExecutionId = null;
+                terminalPrint("⚠️ All executions stopped.", "#f44336");
                 break;
 
             default:
@@ -680,7 +902,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 terminalPrint("═══════════════════════════════════════", "#00ffff");
-terminalPrint("  SOL EXECUTOR v1.7.5 Enhanced Edition", "#fff");
+terminalPrint("  SOL EXECUTOR v1.8.6", "#fff");
 terminalPrint("  Developer: AreDev", "#00bcd4");
 terminalPrint("═══════════════════════════════════════", "#00ffff");
 terminalPrint("Type /help for commands | /helpsyntax for syntax", "#bbb");
