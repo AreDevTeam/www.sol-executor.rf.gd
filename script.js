@@ -142,7 +142,7 @@ function showSyntaxHelp() {
     terminalPrint("│ if var >= val then       → Se var >= val                │", "#fff");
     terminalPrint("│ if var <= val then       → Se var <= val                │", "#fff");
     terminalPrint("│ if not var = val then    → Se var != val                │", "#fff");
-    terminalPrint("│ elcio                    → Senão (else)                 │", "#fff");
+    terminalPrint("│ else                     → Senão (else)                 │", "#fff");
     terminalPrint("│ break                    → Fecha o bloco if/else        │", "#fff");
     terminalPrint("└─────────────────────────────────────────────────────────┘", "#00bcd4");
     terminalPrint("", "#fff");
@@ -171,7 +171,7 @@ function showSyntaxHelp() {
     terminalPrint("│ create test = rng(1, 10)                                │", "#fff");
     terminalPrint("│ if test = 10 then                                       │", "#fff");
     terminalPrint("│     log('dez!')                                         │", "#fff");
-    terminalPrint("│ elcio                                                   │", "#fff");
+    terminalPrint("│ else                                                   │", "#fff");
     terminalPrint("│     set test = rng(1, 10)                               │", "#fff");
     terminalPrint("│ break                                                   │", "#fff");
     terminalPrint("│                                                         │", "#fff");
@@ -380,7 +380,7 @@ async function runSol() {
     );
 
     // elcio → } else {
-    code = code.replace(/\belcio\b/ig, "} else {");
+    code = code.replace(/\belse\b/ig, "} else {");
 
     // ── 9. LOOPS ─────────────────────────────────────────────
     //
