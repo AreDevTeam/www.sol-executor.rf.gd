@@ -1,4 +1,4 @@
-const PROXY_URL = "https://aredev-security.vercel.app/api/download?file=";
+const PROXY_URL = "https://aredev-security.vercel.app/vercel/path0?file=";
 const CONFIG = {
     maxLogLines: 500,
     autoSaveInterval: 30000,
