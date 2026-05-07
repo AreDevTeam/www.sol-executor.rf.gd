@@ -472,19 +472,13 @@ async function runSol() {
     for (const match of importMatches) await importService(match[1]);
     code = code.replace(/^\s*clear\s*$/gim, "logOutput.innerHTML = '';");    
     
-    // ── 3. Firebase ──────────────────────────────────────────
-    code = code.replace(/setfirebase\s*\((.*?)\)/ig, "WebSol.setfirebase($1)");
-    code = code.replace(/postfire\s*\((.*?)\s*,\s*(.*?)\)/ig, "await WebSol.postfire($1, $2)");
-    code = code.replace(/postfire\s*\((['"][\w\s/]+['"])\)(?!\s*,)/ig, "await WebSol.postfire($1, true)");
-    code = code.replace(/getfire\s*\((.*?)\)\s*->\s*(\w+)/ig, "let $2 = await WebSol.getfire($1)");
-
-    // ── 4. Math ──────────────────────────────────────────────
+    // ── 3. Math ──────────────────────────────────────────────
     code = code.replace(/math\((.*?)\)/ig, (_, content) => {
         let t = content.replace(/\[(.*?)\]/g, "$1").replace(/÷/g, "/").replace(/×/g, "*");
         return `eval(\`${t}\`)`;
     });
 
-    // ── 5. Tempo / Data ──────────────────────────────────────
+    // ── 4. Tempo / Data ──────────────────────────────────────
     code = code.replace(/\bhour\b/ig,      "(new Date().getHours())");
     code = code.replace(/\bminutes\b/ig,   "(new Date().getMinutes())");
     code = code.replace(/\bseconds\b/ig,   "(new Date().getSeconds())");
@@ -493,7 +487,7 @@ async function runSol() {
     code = code.replace(/\byear\b/ig,      "(new Date().getFullYear())");
     code = code.replace(/\btimestamp\b/ig, "(Date.now())");
 
-    // ── 6. FUNÇÕES ───────────────────────────────────────────
+    // ── 5. FUNÇÕES ───────────────────────────────────────────
     code = code.replace(
         /\bcreate\s+function\s+(\w+)\s*\(\s*(.*?)\s*\)/ig,
         "var $1 = async function($2) {"
@@ -511,13 +505,13 @@ async function runSol() {
         "$1 = async function() {"
     );
 
-    // ── 7. VARIÁVEIS ─────────────────────────────────────────
+    // ── 6. VARIÁVEIS ─────────────────────────────────────────
     code = code.replace(/\bcreate\s+(\w+)\s*=\s*/ig, "var $1 = ");
     code = code.replace(/\bcreate\s+(\w+)\s*$/img,   "var $1");
     code = code.replace(/\bset\s+(\w+)\s*=\s*/ig,    "$1 = ");
     code = code.replace(/\bdelete\s+(\w+)/ig,         "$1 = undefined");
 
-    // ── 8. CONDICIONAIS ──────────────────────────────────────
+    // ── 7. CONDICIONAIS ──────────────────────────────────────
     function mapOp(op) {
         if (op.trim() === "=")  return "===";
         if (op.trim() === "!=") return "!==";
